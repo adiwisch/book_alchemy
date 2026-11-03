@@ -1,10 +1,10 @@
-from datetime import date
-from flask import Flask, render_template, request, flash, redirect, url_for
-from data_models import db, Author, Book
-
-from sqlalchemy import select
+"""Flask application for managing a personal book library."""
 
 import os
+from datetime import date
+from flask import Flask, render_template, request, flash, redirect, url_for
+from sqlalchemy import select
+from data_models import db, Author, Book
 
 app = Flask(__name__)
 
@@ -14,29 +14,31 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(basedir, 'data/library.sqlite')}"
 db.init_app(app)
 
+
 @app.route("/", methods=["GET"])
 def index():
+    """Display the library with optional search and sorting."""
     sort_by = request.args.get("sort", "")
     order = request.args.get("order", "asc")
     search_query = request.args.get("search", "").strip()
 
-    # Zulässige Sortierfelder
+    # Validate the requested sort field.
     if sort_by not in ("title", "author", "rating"):
         sort_by = ""
 
-    # Zulässige Sortierrichtungen
+    # Validate the requested sort direction.
     if order not in ("asc", "desc"):
         order = "asc"
 
     stmt = select(Book)
 
-    # Stichwortsuche
+    # Filter books by title when a search term is provided.
     if search_query:
         stmt = stmt.where(
             Book.title.like(f"%{search_query}%")
         )
 
-    # Sortierung
+    # Apply the requested sorting.
     if sort_by == "author":
         stmt = stmt.join(Book.author).order_by(
             Author.name.desc() if order == "desc" else Author.name.asc(),
@@ -44,7 +46,7 @@ def index():
         )
 
     elif sort_by == "rating":
-        # Nicht bewertete Bücher (NULL) immer ans Ende
+        # Keep unrated books (NULL ratings) at the end.
         stmt = stmt.order_by(
             Book.rating.is_(None).asc(),
             Book.rating.desc() if order == "desc" else Book.rating.asc(),
@@ -57,7 +59,7 @@ def index():
         )
 
     else:
-        # Standard-Sortierung: Titel aufsteigend
+        # Use ascending title order by default.
         stmt = stmt.order_by(Book.title.asc())
 
     books = db.session.execute(stmt).scalars().all()
@@ -70,12 +72,16 @@ def index():
         search_query=search_query
     )
 
-@app.route("/add_author", methods =["GET"])
+
+@app.route("/add_author", methods=["GET"])
 def open_add_author_form():
+    """Display the form for creating a new author."""
     return render_template("add_author.html")
 
-@app.route("/add_author", methods =["POST"])
+
+@app.route("/add_author", methods=["POST"])
 def add_author():
+    """Create an author from the submitted form data."""
     data = request.form
     name = data.get("name")
     birth_date = data.get("birthdate")
@@ -92,8 +98,10 @@ def add_author():
 
     return redirect(url_for("add_author"))
 
+
 @app.route("/add_book", methods=["GET", "POST"])
 def add_book():
+    """Display the book form or save a new book."""
     if request.method == "POST":
         data = request.form
 
@@ -120,8 +128,10 @@ def add_book():
 
     return render_template("add_book.html", authors=authors)
 
+
 @app.route("/book/<int:book_id>/delete", methods=["POST"])
 def delete_book(book_id):
+    """Delete a book and delete its author if no books remain."""
     book = db.session.get(Book, book_id)
 
     if book is None:
@@ -134,7 +144,7 @@ def delete_book(book_id):
     db.session.delete(book)
     db.session.commit()
 
-    # Autor löschen, falls keine weiteren Bücher vorhanden sind
+    # Delete the author if they have no remaining books.
     if author and not author.books:
         db.session.delete(author)
         db.session.commit()
@@ -144,8 +154,10 @@ def delete_book(book_id):
 
     return redirect(url_for("index"))
 
+
 @app.route("/book/<int:book_id>")
 def book_detail(book_id):
+    """Display details for a specific book."""
     book = db.session.get(Book, book_id)
 
     if book is None:
@@ -154,8 +166,10 @@ def book_detail(book_id):
 
     return render_template("book_detail.html", book=book)
 
+
 @app.route("/author/<int:author_id>")
 def author_detail(author_id):
+    """Display details for a specific author."""
     author = db.session.get(Author, author_id)
 
     if author is None:
@@ -164,8 +178,10 @@ def author_detail(author_id):
 
     return render_template("author_detail.html", author=author)
 
+
 @app.route("/author/<int:author_id>/delete", methods=["POST"])
 def delete_author(author_id):
+    """Delete an author and their associated books."""
     author = db.session.get(Author, author_id)
 
     if author is None:
@@ -181,8 +197,10 @@ def delete_author(author_id):
 
     return redirect(url_for("index"))
 
+
 @app.route("/book/<int:book_id>/rate", methods=["POST"])
 def rate_book(book_id):
+    """Validate and save a rating for a book."""
     book = db.session.get(Book, book_id)
 
     if book is None:
@@ -202,10 +220,10 @@ def rate_book(book_id):
 
     return redirect(url_for("book_detail", book_id=book_id))
 
+
+# Initialize database tables manually when needed.
 # with app.app_context():
-#   db.create_all()
+#     db.create_all()
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-
