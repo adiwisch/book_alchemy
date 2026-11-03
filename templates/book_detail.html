@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}{{ book.title }}{% endblock %}
+
+{% block content %}
+
+<a href="{{ url_for('index') }}">← Zurück zur Bibliothek</a>
+
+<div class="card book-detail">
+
+    <div>
+        <img
+            src="https://covers.openlibrary.org/b/isbn/{{ book.isbn }}-L.jpg?default=false"
+            alt="Cover von {{ book.title }}"
+            onerror="this.style.display='none'"
+        >
+    </div>
+
+    <div>
+        <h1>{{ book.title }}</h1>
+
+        <p><strong>ISBN:</strong> {{ book.isbn }}</p>
+
+        <p>
+            <strong>Erscheinungsjahr:</strong>
+            {{ book.publication_year }}
+        </p>
+
+        <p>
+            <strong>Autor:</strong>
+            {% if book.author %}
+                <a href="{{ url_for('author_detail', author_id=book.author.id) }}">
+                    {{ book.author.name }}
+                </a>
+            {% else %}
+                Unbekannter Autor
+            {% endif %}
+        </p>
+
+        <p>
+            <strong>Bewertung:</strong>
+            {% if book.rating %}
+                ⭐ {{ book.rating }} / 10
+            {% else %}
+                Noch nicht bewertet
+            {% endif %}
+        </p>
+
+        <hr>
+
+        <h2>Buch bewerten</h2>
+
+        <form action="{{ url_for('rate_book', book_id=book.id) }}"
+              method="POST">
+
+            <div class="form-group">
+                <label for="rating">Bewertung (1–10)</label>
+
+                <select name="rating" id="rating" required>
+                    {% for i in range(1, 11) %}
+                        <option value="{{ i }}"
+                            {% if book.rating == i %}selected{% endif %}>
+                            {{ i }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit">Bewertung speichern</button>
+
+        </form>
+    </div>
+
+</div>
+
+{% endblock %}

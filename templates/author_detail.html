@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}{{ author.name }}{% endblock %}
+
+{% block content %}
+
+<a href="{{ url_for('index') }}">← Zurück zur Bibliothek</a>
+
+<div class="card">
+
+    <h1>👤 {{ author.name }}</h1>
+
+    <p>
+        <strong>Geburtsdatum:</strong>
+        {{ author.birth_date or 'Unbekannt' }}
+    </p>
+
+    <p>
+        <strong>Sterbedatum:</strong>
+        {{ author.date_of_death or 'Nicht angegeben' }}
+    </p>
+
+    <hr>
+
+    <h2>📚 Bücher von {{ author.name }}</h2>
+
+    {% if author.books %}
+
+        <div class="book-grid">
+
+            {% for book in author.books %}
+
+                <div class="book-card">
+
+                    <img
+                        src="https://covers.openlibrary.org/b/isbn/{{ book.isbn }}-M.jpg?default=false"
+                        alt="Cover von {{ book.title }}"
+                        onerror="this.style.display='none'"
+                    >
+
+                    <h2>
+                        <a href="{{ url_for('book_detail', book_id=book.id) }}">
+                            {{ book.title }}
+                        </a>
+                    </h2>
+
+                    <p class="year">
+                        Erscheinungsjahr: {{ book.publication_year }}
+                    </p>
+
+                    {% if book.rating %}
+                        <p>⭐ {{ book.rating }} / 10</p>
+                    {% else %}
+                        <p class="year">Noch nicht bewertet</p>
+                    {% endif %}
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    {% else %}
+
+        <p>Dieser Autor hat keine Bücher in deiner Bibliothek.</p>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}
