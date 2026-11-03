@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Meine Bibliothek{% endblock %}
+
+{% block content %}
+
+<h1>📚 Meine Bibliothek</h1>
+
+<!-- Suche -->
+<form action="{{ url_for('index') }}"
+      method="GET"
+      class="search-form">
+
+    <input
+        type="text"
+        name="search"
+        placeholder="Bücher suchen ..."
+        value="{{ search_query or '' }}"
+    >
+
+    <button type="submit">🔍 Search</button>
+</form>
+
+<!-- Sortierung -->
+<div class="sorting">
+    <a href="{{ url_for('index',
+        sort='title',
+        order='desc' if sort_by == 'title' and order == 'asc' else 'asc',
+        search=search_query) }}"
+       class="button">
+        Titel
+        {% if sort_by == 'title' %}
+            {{ '↑' if order == 'asc' else '↓' }}
+        {% endif %}
+    </a>
+
+    <a href="{{ url_for('index',
+        sort='author',
+        order='desc' if sort_by == 'author' and order == 'asc' else 'asc',
+        search=search_query) }}"
+       class="button">
+        Autor
+        {% if sort_by == 'author' %}
+            {{ '↑' if order == 'asc' else '↓' }}
+        {% endif %}
+    </a>
+
+    <a href="{{ url_for('index',
+        sort='rating',
+        order='desc' if sort_by == 'rating' and order == 'asc' else 'asc',
+        search=search_query) }}"
+       class="button">
+        Bewertung
+        {% if sort_by == 'rating' %}
+            {{ '↑' if order == 'asc' else '↓' }}
+        {% endif %}
+    </a>
+</div>
+
+<!-- Bücherliste -->
+{% if books %}
+
+    <div class="book-grid">
+
+        {% for book in books %}
+
+            <div class="book-card">
+
+                <img
+                    src="https://covers.openlibrary.org/b/isbn/{{ book.isbn }}-M.jpg?default=false"
+                    alt="Cover von {{ book.title }}"
+                    onerror="this.style.display='none'"
+                >
+
+                <h2>
+                    <a href="{{ url_for('book_detail', book_id=book.id) }}">
+                        {{ book.title }}
+                    </a>
+                </h2>
+
+                <!-- Bewertung -->
+                {% if book.rating %}
+                    <p>⭐ {{ book.rating }} / 10</p>
+                {% else %}
+                    <p class="year">Noch nicht bewertet</p>
+                {% endif %}
+
+                <!-- Autor -->
+                <p class="author">
+
+                    {% if book.author %}
+
+                        <a href="{{ url_for('author_detail', author_id=book.author.id) }}">
+                            {{ book.author.name }}
+                        </a>
+
+                    {% else %}
+                        Unbekannter Autor
+                    {% endif %}
+
+                </p>
+
+                <p class="year">
+                    Erscheinungsjahr: {{ book.publication_year }}
+                </p>
+
+                <!-- Aktionen -->
+                <div class="book-actions">
+                    <a href="{{ url_for('book_detail', book_id=book.id) }}"
+                       class="button">
+                        Details
+                    </a>
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('delete_book', book_id=book.id) }}"
+                        class="inline-form"
+                        onsubmit="return confirm('Möchtest du dieses Buch wirklich löschen?');"
+                    >
+                        <button type="submit" class="button danger">
+                            Buch löschen
+                        </button>
+                    </form>
+                </div>
+
+                {% if book.author %}
+                <div class="author-actions">
+                    <form
+                        method="POST"
+                        action="{{ url_for('delete_author', author_id=book.author.id) }}"
+                        onsubmit="return confirm('Möchtest du den Autor und alle zugehörigen Bücher wirklich löschen?');"
+                    >
+                        <button type="submit" class="button danger-outline">
+                            Autor samt Büchern löschen
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+{% else %}
+
+    <div class="card">
+        <p>Keine Bücher gefunden.</p>
+    </div>
+
+{% endif %}
+
+{% endblock %}
