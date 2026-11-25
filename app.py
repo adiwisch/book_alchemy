@@ -1,17 +1,20 @@
 """Flask application for managing a personal book library."""
 
-import os
 from datetime import date
 from flask import Flask, render_template, request, flash, redirect, url_for
-from sqlalchemy import select
+from sqlalchemy import select, func
 from data_models import db, Author, Book
+from pathlib import Path
 
 app = Flask(__name__)
 
 app.secret_key = "andres_supergeheimer_key"
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(basedir, 'data/library.sqlite')}"
+basedir = Path(__file__).resolve().parent
+database_path = basedir / "data" / "library.sqlite"
+
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{database_path.as_posix()}"
+
 db.init_app(app)
 
 
@@ -83,10 +86,24 @@ def open_add_author_form():
 def add_author():
     """Create an author from the submitted form data."""
     data = request.form
-    name = data.get("name")
+    name = data.get("name", "").strip()
     birth_date = data.get("birthdate")
     date_of_death = data.get("date_of_death")
-    print(f"{name}, {birth_date}, {date_of_death}")
+
+    if not name:
+        flash("Bitte einen Autorennamen eingeben!", "error")
+        return redirect(url_for("add_author"))
+
+    existing_author = db.session.scalar(
+        select(Author).where(
+            func.lower(Author.name) == name.lower()
+        )
+    )
+
+    if existing_author:
+        flash(f"Der Autor {name} existiert bereits!", "error")
+        return redirect(url_for("add_author"))
+
     new_author = Author(
         name=name,
         birth_date=date.fromisoformat(birth_date) if birth_date else None,
@@ -105,10 +122,18 @@ def add_book():
     if request.method == "POST":
         data = request.form
 
-        isbn = data.get("isbn")
+        isbn = data.get("isbn", "").strip()
         title = data.get("title")
         publication_year = data.get("publication_year")
         author_id = data.get("author_id")
+
+        existing_book = db.session.scalar(
+            select(Book).where(Book.isbn == isbn)
+        )
+
+        if existing_book:
+            flash(f"Ein Buch mit der ISBN {isbn} existiert bereits!", "error")
+            return redirect(url_for("add_book"))
 
         new_book = Book(
             isbn=isbn,
